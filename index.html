@@ -1,0 +1,53 @@
+<!DOCTYPE html>
+<html>
+<head>
+<style>
+p{word-break:break-all;}
+</style>
+<script src="./RVM.js"></script>
+<script>
+
+function testFunction(x){
+	return x*x*0.01;
+}
+
+function main(){
+	/* 标准的XY */
+	var x_std = Array();
+	var t_std = Array();
+	for (var i = 0; i < 100; i++){
+		x_std.push(i);
+	}
+	for (var i = 0; i < 100; i++){
+		t_std.push(testFunction(i));
+	}
+	//var_dump('the x_std:');
+	//var_dump(x_std);
+	//var_dump('the t_std:');
+	//var_dump(t_std);
+	var_dump('X-Y:');
+	draw(x_std, t_std);
+	/* 噪声样本 */
+	var x_noise = Array(100);
+	for (var i = 0; i < x_std.length; i++){
+		x_noise[i] = x_std[i] + 6*(Math.random()-0.5);
+	}
+	var t_noise = Array(100);
+	for (var i = 0; i < t_std.length; i++){
+		t_noise[i] = testFunction(x_std[i]) + 6*(Math.random()-0.5);
+	}
+	var_dump('X-Y:(Noise)');
+	draw(x_noise, t_noise);
+	
+	var myrvm = new RVM();
+	myrvm.setTrainXT(x_noise,t_noise);
+	myrvm.train();
+}
+window.onload = function(){
+	main();
+};
+</script>
+</head>
+<body>
+</body>
+</html>
