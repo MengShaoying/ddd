@@ -41,6 +41,7 @@ function main(){
 	
 	var myrvm = new RVM();
 	myrvm.setTrainXT(x_noise,t_noise);
+	myrvm.initAlphaSigma();
 	myrvm.train();
 }
 window.onload = function(){

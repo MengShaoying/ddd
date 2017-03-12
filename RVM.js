@@ -16,9 +16,11 @@ function draw(x,y){
 	var dy = max(y) - min(y);
 	var dx = max(x) - min(x);
 	var k = 300/dy;
-	var h = '<svg xmlns="http://www.w3.org/2000/svg" version="1.1" height="'+k*dy+'" width="'+k*dx+'">';
+	var h = '<svg xmlns="http://www.w3.org/2000/svg" version="1.1" height="'
+		+ k*dy + '" width="' + k*dx +'">';
 	for (var i = 0; i < x.length; i++){
-		h += '<circle cx="'+k*(x[i]-min(x))+'" cy="'+k*(dy-y[i]+min(y))+'" r="2" fill="black"/>';
+		h += '<circle cx="'+k*(x[i]-min(x))+'" cy="'
+			+ k*(dy-y[i]+min(y)) + '" r="2" fill="black"/>';
 	}
 	h += '</svg>';
 	var p = document.createElement('div');
@@ -54,10 +56,13 @@ function gaussianFunction(x, mu, sigma){
 	var r2 = 0;
 	if ('number' == typeof(x) && 'number' == typeof(mu)){
 		r2 = (x - mu) * (x - mu);
-		return Math.exp((0-r2)/(2*sigma*sigma))/Math.sqrt(2*Math.PI*sigma);
+		return Math.exp((0-r2)/(2*sigma*sigma)) /
+			Math.sqrt(2*Math.PI*sigma);
 	} else {
-		for (var i = 0; i < x.length; i++) r2 += (x[i] - mu[i]) * (x[i] - mu[i]);
-		return Math.exp((0-r2)/(2*sigma*sigma))/Math.pow(Math.sqrt(2*Math.PI*sigma),x.length);
+		for (var i = 0; i < x.length; i++)
+			r2 += (x[i] - mu[i]) * (x[i] - mu[i]);
+		return Math.exp((0-r2)/(2*sigma*sigma)) / 
+			Math.pow(Math.sqrt(2*Math.PI*sigma),x.length);
 	}
 }
 //var N = 3;
@@ -86,6 +91,12 @@ function viewMatrix(matrix){
  * 矩阵乘法
  */
 function matrixMultiplication(a,b){
+	if ('number' == typeof(a)){
+		for (var i = 0; i < b.length; i++)
+			for (var j = 0; j < b[i].length; j++)
+				b[i][j] *= a;
+		return b;
+	}
 	var result = Array();
 	for (var i = 0; i < a.length; i++){
 		result.push(Array());
@@ -130,6 +141,14 @@ function decMatrix(a, b){
 //var b = [[1,1,1],[1,1,1],[1,1,1]];
 //var c = addMatrix(a,b);
 //viewMatrix(c);
+
+function array2matrix(t){
+	var a0 = Array();
+	for (var i = 0; i < t.length; i++){
+		a0.push(t[i]);
+	}
+	return [a0];
+}
 
 /*
  * 求已知矩阵的转置矩阵
@@ -241,48 +260,65 @@ function PHI(x){
 function RVM(){
 	this.x = Array();
 	this.t = Array();
-	this._alpha = Array();
-	this._sigma = 0;
-	this._PHI   = Array();
-	this._A     = Array();
-	this._SIGMA = Array();
-	this._u     = Array();
-	this._gama  = Array();
+	this._alpha = Array();/* 一维数组 */
+	this._sigma = 0;      /* 实数 */
+	this._PHI   = Array();/* 矩阵 */
+	this._PHIT  = Array();/* 矩阵 */
+	this._A     = Array();/* 矩阵 */
+	this._SIGMA = Array();/* 矩阵 */
+	this._u     = Array();/* 矩阵 */
+	this._gama  = Array();/* 一维数组 */
 	this.setTrainXT = function(x,t){
 		this.x  = x;
 		this.t  = t;
 	};
 	this.initAlphaSigma = function(){
 		this._alpha = Array();
-		for (var i = 0; i < this._N + 1; i++)
+		for (var i = 0; i < this.x.length + 1; i++)
 			this._alpha.push(1 + Math.random());
 		this._sigma = 1 + Math.random();
 	};
 	this.train = function(){
-		this._PHI = PHI(this.x);
-		var beta,res,PHIT;
-		for (var i = 0; i < 10; i++){
+		this._PHI  = PHI(this.x);
+		this._PHIT = matrixT(this._PHI);
+		var t = array2matrix(this.t);
+		var beta, ktxk, top, buttom;
+		for (var i = 0; i < 3; i++){
 			this._A = diag(this._alpha);
-			this._SIGMA = getInverseMatrix(addMatrix(matrixMultiplication(1/this._sigma/this._sigma,matrixMultiplication(matrixT(this._PHI), this._PHI)), this._A));
-			var_dump(this._SIGMA);
-			beta = 1/this._sigma/this._sigma;
-			var_dump('beta='+beta);
-			PHIT = matrixT(this._PHI);
-			var_dump("PHIT=",PHIT);
-			res  = matrixMultiplication(matrixMultiplication(this._SIGMA,PHIT),matrixT(this.t));
-			var_dump('res='+res);
-			this._u = matrixMultiplication(beta, res);
-			var_dump(this._u);
+			/* 计算SIGMA */
+			beta = 1 / this._sigma / this._sigma;
+			ktxk = matrixMultiplication(this._PHIT, this._PHI);
+			ktxk = matrixMultiplication(beta, ktxk);
+			ktxk = addMatrix(ktxk, this._A);
+			this._SIGMA = getInverseMatrix(ktxk);
+			/* 计算this._u和this._gama */
+			this._u = matrixMultiplication(beta, this._SIGMA);
+			this._u = matrixMultiplication(this._u, this._PHIT);
+			this._u = matrixMultiplication(this._u, matrixT(t));
+			/* 计算gama值 */
 			this._gama = Array();
-			for (var i = 0; i < this._SIGMA.length; i++){
-				this._gama.push(1 - this._alpha[i] * this._SIGMA[i][i]);
+			for (var k = 0; k < this._alpha.length; k++){
+				this._gama.push(
+					1 - this._alpha[k] * this._SIGMA[k][k]
+				);
 			}
-			var_dump(this._gama);
-			for (var i = 0; i < this._alpha.length; i++){
-				this._alpha[i] = this._gama[i] / this._u[i] / this._u[i];
+			/* 计算新的alpha值 */
+			for (var k = 0; k < this._alpha.length; k++){
+				this._alpha[k] = this._gama[i] /
+					(this._u[i][0] * this._u[i][0]);
 			}
-			this._sigma = F_Norm2(decMatrix(matrixT(this.t), matrixMultiplication(this._PHI, this._u))) / (this.t.length - E(this._gama, this.t.length));
 			var_dump(this._alpha);
+			/* 计算新的sigma值 */
+			top = matrixMultiplication(this._PHI, this._u);
+			top = matrixMultiplication(-1, top);
+			top = addMatrix(matrixT(t), top);
+			top = F_Norm2(top);
+			buttom = 0;
+			for (var k = 0; k < this._gama.length; k++){
+				buttom += this._gama[i];
+			}
+			buttom = this.x.length - buttom;
+			this._sigma = Math.sqrt(top / buttom);
 		}
 	};
 	this.forecast = function(x){};
