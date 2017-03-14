@@ -1,48 +1,61 @@
 <!DOCTYPE html>
 <html>
 <head>
+<meta charset="utf-8"/>
 <style>
-p{word-break:break-all;}
+/*p{word-break:break-all;}
+body{width:10000px;}*/
+.graph{display:inline-block;margin:20px;}
 </style>
 <script src="./RVM.js"></script>
 <script>
 
 function testFunction(x){
-	return x*x*0.01;
+	return Math.sin(0.1*x)*100;
 }
 
 function main(){
+	var lengthOf = 200;
 	/* 标准的XY */
 	var x_std = Array();
 	var t_std = Array();
-	for (var i = 0; i < 100; i++){
+	for (var i = 0; i < lengthOf; i++){
 		x_std.push(i);
 	}
-	for (var i = 0; i < 100; i++){
+	for (var i = 0; i < lengthOf; i++){
 		t_std.push(testFunction(i));
 	}
-	//var_dump('the x_std:');
-	//var_dump(x_std);
-	//var_dump('the t_std:');
-	//var_dump(t_std);
-	var_dump('X-Y:');
+	var_dump('RVM，相关向量机');
+	var_dump('无噪声值和带噪声值，图像经过比例放大');
+	var_dump('正弦函数：');
 	draw(x_std, t_std);
 	/* 噪声样本 */
-	var x_noise = Array(100);
+	var x_noise = Array(lengthOf);
 	for (var i = 0; i < x_std.length; i++){
-		x_noise[i] = x_std[i] + 6*(Math.random()-0.5);
+		x_noise[i] = x_std[i];// + Math.random() - 0.5;
 	}
-	var t_noise = Array(100);
+	var t_noise = Array(lengthOf);
 	for (var i = 0; i < t_std.length; i++){
-		t_noise[i] = testFunction(x_std[i]) + 6*(Math.random()-0.5);
+		t_noise[i] = testFunction(x_std[i]) + (Math.random() - 0.5)*100;
 	}
-	var_dump('X-Y:(Noise)');
+	//var_dump('X-Y:(Noise)');
 	draw(x_noise, t_noise);
 	
 	var myrvm = new RVM();
+	/* 设置训练数据 */
 	myrvm.setTrainXT(x_noise,t_noise);
+	/* 随便初始化alpha和sigma */
 	myrvm.initAlphaSigma();
+	/* 训练开始 */
 	myrvm.train();
+	/* 下面开始预测 */
+	var_dump('预测值');
+	var t_for = Array();
+	for (var i = 0; i < lengthOf; i++){
+		t_for.push(myrvm.forecast(x_std[i]));
+	}
+	//var_dump(t_for);
+	draw(x_std, t_for);
 }
 window.onload = function(){
 	main();

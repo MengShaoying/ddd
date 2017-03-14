@@ -17,7 +17,7 @@ function draw(x,y){
 	var dx = max(x) - min(x);
 	var k = 300/dy;
 	var h = '<svg xmlns="http://www.w3.org/2000/svg" version="1.1" height="'
-		+ k*dy + '" width="' + k*dx +'">';
+		+ (k*dy+5) + '" width="' + k*dx +'">';
 	for (var i = 0; i < x.length; i++){
 		h += '<circle cx="'+k*(x[i]-min(x))+'" cy="'
 			+ k*(dy-y[i]+min(y)) + '" r="2" fill="black"/>';
@@ -25,6 +25,7 @@ function draw(x,y){
 	h += '</svg>';
 	var p = document.createElement('div');
 	p.innerHTML = h;
+	p.setAttribute("class","graph");
 	document.body.appendChild(p);
 }
 
@@ -78,7 +79,7 @@ function viewMatrix(matrix){
 	var html = '';
 	for (var i = 0; i < matrix.length; i++){
 		for (var j = 0; j < matrix[i].length; j++){
-			html += matrix[i][j] + '&nbsp;';
+			html += matrix[i][j].toFixed(2) + '&nbsp;';
 		}
 		html += '<br/>';
 	}
@@ -251,7 +252,7 @@ function PHI(x){
 	for (var i = 0; i < x.length; i++){
 		s = Array();s.push(1);
 		for (j = 0; j < x.length; j++)
-			s.push(gaussianFunction(x[i], x[j], 1));
+			s.push(gaussianFunction(x[i], x[j], 4));
 		p.push(s);
 	}
 	return p;
@@ -283,18 +284,28 @@ function RVM(){
 		this._PHIT = matrixT(this._PHI);
 		var t = array2matrix(this.t);
 		var beta, ktxk, top, buttom;
-		for (var i = 0; i < 3; i++){
+		for (var i = 0; i < 100; i++){
+			//var_dump('i=');
+			//var_dump(i);
 			this._A = diag(this._alpha);
+			//var_dump('A=');
+			//viewMatrix(this._A);
 			/* 计算SIGMA */
 			beta = 1 / this._sigma / this._sigma;
+			//var_dump('beta=');
+			//var_dump(beta);
 			ktxk = matrixMultiplication(this._PHIT, this._PHI);
 			ktxk = matrixMultiplication(beta, ktxk);
 			ktxk = addMatrix(ktxk, this._A);
 			this._SIGMA = getInverseMatrix(ktxk);
+			//var_dump('SIGMA=');
+			//viewMatrix(this._SIGMA);
 			/* 计算this._u和this._gama */
 			this._u = matrixMultiplication(beta, this._SIGMA);
 			this._u = matrixMultiplication(this._u, this._PHIT);
 			this._u = matrixMultiplication(this._u, matrixT(t));
+			//var_dump('u=');
+			//viewMatrix(this._u);
 			/* 计算gama值 */
 			this._gama = Array();
 			for (var k = 0; k < this._alpha.length; k++){
@@ -302,12 +313,15 @@ function RVM(){
 					1 - this._alpha[k] * this._SIGMA[k][k]
 				);
 			}
+			//var_dump('gama=');
+			//var_dump(this._gama);
 			/* 计算新的alpha值 */
 			for (var k = 0; k < this._alpha.length; k++){
-				this._alpha[k] = this._gama[i] /
-					(this._u[i][0] * this._u[i][0]);
+				this._alpha[k] = this._gama[k] /
+					(this._u[k][0] * this._u[k][0]);
 			}
-			var_dump(this._alpha);
+			//var_dump('new alpha=');
+			//var_dump(this._alpha);
 			/* 计算新的sigma值 */
 			top = matrixMultiplication(this._PHI, this._u);
 			top = matrixMultiplication(-1, top);
@@ -315,13 +329,42 @@ function RVM(){
 			top = F_Norm2(top);
 			buttom = 0;
 			for (var k = 0; k < this._gama.length; k++){
-				buttom += this._gama[i];
+				buttom += this._gama[k];
 			}
+			//var_dump('N=');
+			//var_dump(this.x.length);
+			//var_dump('top=');
+			//var_dump(top);
+			//var_dump('buttom=');
+			//var_dump(buttom);
 			buttom = this.x.length - buttom;
+			if (buttom < 0){
+				//var_dump('i=');
+				//var_dump(i);
+				//var_dump('N-gama[i]*SIGMA[ii]<0, end.');
+				break;
+			}
+			buttom = buttom < 0 ? -buttom : buttom;
 			this._sigma = Math.sqrt(top / buttom);
+			//var_dump('new sigma=');
+			//var_dump(this._sigma);
+			//var_dump('*******************************************');
 		}
 	};
-	this.forecast = function(x){};
+	this.forecast = function(x){
+		/* 计算phi */
+		var k = [1];
+		for (var i = 0; i < this.x.length; i++){
+			k.push(gaussianFunction(x, this.x[i], 4));
+		}
+		//var_dump(k);
+		k = array2matrix(k);
+		k = matrixT(k);
+		//viewMatrix(k);
+		/* 计算预测结果:uT*phi(x) */
+		var r = matrixMultiplication(matrixT(this._u),k);
+		return r[0][0];
+	};
 }
 
 
